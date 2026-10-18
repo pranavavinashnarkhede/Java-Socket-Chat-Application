@@ -5,125 +5,136 @@ import java.time.*;
 
 class MyChatClient
 {
+    private static final String SERVER_HOST = "localhost";
+    private static final int SERVER_PORT = 2101;
+    private static final String TERMINATION_COMMAND = "end";
 
-    public static void main(String A[]) throws Exception
+    public static void main(String A[]) throws IOException
     {
-        // Display the client application status.
         System.out.println("Client application is running");
 
-        // Establish a connection with the server.
-        Socket sobj = new Socket("localhost", 2101);
+        // Read keyboard input for the recovery choice and chat messages.
+        BufferedReader keyboard = new BufferedReader(
+                new InputStreamReader(System.in));
 
-        System.out.println("Connection established successfully");
+        File historyFile = new File("ChatHistory.txt");
 
-        // Create streams for sending and receiving messages.
-        PrintStream pobj = new PrintStream(sobj.getOutputStream());
-
-        BufferedReader bobj1 = new BufferedReader( new InputStreamReader(sobj.getInputStream()));
-
-        // Create a reader for taking input from the user.
-        BufferedReader bobj2 = new BufferedReader( new InputStreamReader(System.in));
-
-        String str1 = null, str2 = null;
-
-        // Display the chat client header.
-        System.out.println("----------------------------------------");
-        System.out.println("---------- Pranav Chat Client ----------");
-        System.out.println("----------------------------------------");
-
-        // Check whether previous chat history exists.
-        File fobj = new File("ChatHistory.txt");
-
-        String sRet = null;
-
-        if (fobj.exists())
+        // Offer to display or back up the previous chat history.
+        if (historyFile.exists())
         {
-            System.out.println("Do you want to recover previous chat history? (Yes/No)");
+            System.out.println(
+                    "Do you want to recover previous chat history? (Yes/No)");
 
-            sRet = bobj2.readLine();
+            String choice = keyboard.readLine();
 
-            if (sRet.equals("Yes"))
+            if ("Yes".equalsIgnoreCase(choice))
             {
-                // Read and display the previous chat history.
-                FileReader frobj = new FileReader(fobj);
-                BufferedReader brobj = new BufferedReader(frobj);
-
-                String line = null;
-
-                while ((line = brobj.readLine()) != null)
+                try (BufferedReader historyReader =
+                             new BufferedReader(new FileReader(historyFile)))
                 {
-                    System.out.println(line);
+                    String line;
+
+                    while ((line = historyReader.readLine()) != null)
+                    {
+                        System.out.println(line);
+                    }
+                }
+            }
+            else if ("No".equalsIgnoreCase(choice))
+            {
+                File backupFile = new File("ChatBackup.txt");
+
+                if (!historyFile.renameTo(backupFile))
+                {
+                    System.out.println("Unable to back up previous chat history.");
+                }
+            }
+        }
+
+        // Create the history file if it does not exist.
+        if (!historyFile.exists())
+        {
+            historyFile.createNewFile();
+        }
+
+        // Connect to the server and close resources when the session ends.
+        try (Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
+             PrintStream serverOutput =
+                     new PrintStream(socket.getOutputStream());
+             BufferedReader serverInput = new BufferedReader(
+                     new InputStreamReader(socket.getInputStream()));
+             BufferedWriter historyWriter =
+                     new BufferedWriter(new FileWriter(historyFile, true)))
+        {
+            System.out.println("Connection established successfully");
+
+            System.out.println("----------------------------------------");
+            System.out.println("---------- Pranav Chat Client ----------");
+            System.out.println("----------------------------------------");
+
+            LocalDate today = LocalDate.now();
+
+            historyWriter.newLine();
+            historyWriter.newLine();
+            historyWriter.write("==========Chat History==========");
+            historyWriter.newLine();
+            historyWriter.write("Date : [" + today + "]");
+            historyWriter.newLine();
+            historyWriter.flush();
+
+            System.out.println("Enter message for server (type 'end' to exit):");
+
+            String message;
+
+            while ((message = keyboard.readLine()) != null)
+            {
+                // Send the termination command so the server can close
+                // this conversation instead of waiting for another message.
+                if (message.equalsIgnoreCase(TERMINATION_COMMAND))
+                {
+                    serverOutput.println(TERMINATION_COMMAND);
+                    break;
                 }
 
-                brobj.close();
-                frobj.close();
-            }
-            else
-            {
-                // Rename the existing history file as a backup.
-                File oldfile = new File("ChatHistory.txt");
-                File newfile = new File("ChatBackup.txt");
+                LocalTime time = LocalTime.now().withNano(0);
 
-                oldfile.renameTo(newfile);
+                // Save and send the client's message.
+                historyWriter.write("[" + time + "] Client : " + message);
+                historyWriter.newLine();
+                historyWriter.flush();
+
+                serverOutput.println(message);
+
+                // Wait for the server's response.
+                String response = serverInput.readLine();
+
+                if (response == null)
+                {
+                    System.out.println("The server disconnected.");
+                    break;
+                }
+
+                time = LocalTime.now().withNano(0);
+
+                historyWriter.write("[" + time + "] Server : " + response);
+                historyWriter.newLine();
+                historyWriter.flush();
+
+                System.out.println("The server says : " + response);
+                System.out.println("Enter message for server (type 'end' to exit):");
             }
+
+            historyWriter.newLine();
+            historyWriter.write("==============================");
+            historyWriter.newLine();
+
+            System.out.println("Chat client terminated.");
         }
-
-        // Create the chat history file if it does not exist.
-        fobj.createNewFile();
-
-        // Open the history file in append mode.
-        FileWriter fwobj = new FileWriter("ChatHistory.txt", true);
-
-        BufferedWriter bobj = new BufferedWriter(fwobj);
-
-        // Record the current date and time for the chat session.
-        LocalTime time = LocalTime.now().withNano(0);
-
-        LocalDate today = LocalDate.now();
-
-        // Write the chat session header to the history file.
-        bobj.newLine();
-        bobj.newLine();
-        bobj.write("==========Chat History==========");
-        bobj.newLine();
-        bobj.newLine();
-
-        bobj.write("Date : [" + today + "]");
-        bobj.newLine();
-
-        System.out.println("Enter message for server:");
-
-        // Continue communication until the user enters "end".
-        while (!(str1 = bobj2.readLine()).equals("end"))
+        catch (ConnectException e)
         {
-            // Store the client's message in the history file.
-            bobj.write("[" + time + "] Client : " + str1);
-            bobj.newLine();
-
-            // Send the message to the server.
-            pobj.println(str1);
-
-            // Receive the server's response.
-            str2 = bobj1.readLine();
-
-            // Store the server's response in the history file.
-            bobj.write("[" + time + "] Server : " + str2);
-            bobj.newLine();
-
-            // Display the server's response.
-            System.out.println("The server says : " + str2);
-
-            System.out.println("Enter message for server:");
+            System.out.println(
+                    "Unable to connect. Make sure the server is running on port "
+                    + SERVER_PORT + ".");
         }
-
-        // Write the closing separator to the history file.
-        bobj.newLine();
-        bobj.write("==============================");
-
-        // Close the resources.
-        bobj.close();
-        fwobj.close();
-        sobj.close();
     }
 }
-
