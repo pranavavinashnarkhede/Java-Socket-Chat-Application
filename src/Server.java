@@ -16,12 +16,9 @@ class MyChatServer
             System.out.println("Server is waiting at port " + SERVER_PORT);
 
             try (Socket clientSocket = serverSocket.accept();
-                 PrintStream clientOutput =
-                         new PrintStream(clientSocket.getOutputStream());
-                 BufferedReader clientInput = new BufferedReader(
-                         new InputStreamReader(clientSocket.getInputStream()));
-                 BufferedReader keyboard = new BufferedReader(
-                         new InputStreamReader(System.in)))
+                 PrintStream clientOutput = new PrintStream(clientSocket.getOutputStream());
+                 BufferedReader clientInput = new BufferedReader( new InputStreamReader(clientSocket.getInputStream()));
+                 BufferedReader keyboard = new BufferedReader( new InputStreamReader(System.in)))
             {
                 System.out.println("Connection accepted successfully");
 
@@ -55,6 +52,7 @@ class MyChatServer
                     clientOutput.println(response);
                 }
 
+                // This message is also shown if the client disconnects unexpectedly.
                 System.out.println("Client connection closed.");
             }
         }

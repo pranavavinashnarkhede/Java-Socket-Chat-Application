@@ -14,23 +14,20 @@ class MyChatClient
         System.out.println("Client application is running");
 
         // Read keyboard input for the recovery choice and chat messages.
-        BufferedReader keyboard = new BufferedReader(
-                new InputStreamReader(System.in));
+        BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
 
         File historyFile = new File("ChatHistory.txt");
 
         // Offer to display or back up the previous chat history.
         if (historyFile.exists())
         {
-            System.out.println(
-                    "Do you want to recover previous chat history? (Yes/No)");
+            System.out.println("Do you want to recover previous chat history? (Yes/No)");
 
             String choice = keyboard.readLine();
 
             if ("Yes".equalsIgnoreCase(choice))
             {
-                try (BufferedReader historyReader =
-                             new BufferedReader(new FileReader(historyFile)))
+                try (BufferedReader historyReader = new BufferedReader(new FileReader(historyFile)))
                 {
                     String line;
 
@@ -59,12 +56,9 @@ class MyChatClient
 
         // Connect to the server and close resources when the session ends.
         try (Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
-             PrintStream serverOutput =
-                     new PrintStream(socket.getOutputStream());
-             BufferedReader serverInput = new BufferedReader(
-                     new InputStreamReader(socket.getInputStream()));
-             BufferedWriter historyWriter =
-                     new BufferedWriter(new FileWriter(historyFile, true)))
+             PrintStream serverOutput = new PrintStream(socket.getOutputStream());
+             BufferedReader serverInput = new BufferedReader( new InputStreamReader(socket.getInputStream()));
+             BufferedWriter historyWriter =new BufferedWriter(new FileWriter(historyFile, true)))
         {
             System.out.println("Connection established successfully");
 
@@ -132,9 +126,12 @@ class MyChatClient
         }
         catch (ConnectException e)
         {
-            System.out.println(
-                    "Unable to connect. Make sure the server is running on port "
-                    + SERVER_PORT + ".");
+            System.out.println("Unable to connect. Make sure the server is running on port "+ SERVER_PORT + ".");
+        }
+        catch (SocketException e)
+        {
+            // Handle an unexpected server or socket disconnection.
+            System.out.println("Connection to the server was lost. Chat session ended.");
         }
     }
 }
