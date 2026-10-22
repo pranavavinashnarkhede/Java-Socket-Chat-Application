@@ -10,26 +10,21 @@ class MyChatServer
     {
         System.out.println("Welcome to the server side");
 
-        // Start the server and wait for one client to connect.
         try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT))
         {
             System.out.println("Server is waiting at port " + SERVER_PORT);
 
             try (Socket clientSocket = serverSocket.accept();
-                 PrintStream clientOutput = new PrintStream(clientSocket.getOutputStream());
-                 BufferedReader clientInput = new BufferedReader( new InputStreamReader(clientSocket.getInputStream()));
-                 BufferedReader keyboard = new BufferedReader( new InputStreamReader(System.in)))
+                 PrintStream clientOutput =new PrintStream(clientSocket.getOutputStream());
+                 BufferedReader clientInput = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                 BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in)))
             {
                 System.out.println("Connection accepted successfully");
-
                 System.out.println("----------------------------------------");
                 System.out.println("---------- Pranav Chat Server ----------");
                 System.out.println("----------------------------------------");
 
                 String message;
-
-                // Receive client messages until the client disconnects
-                // or sends the termination command.
                 while ((message = clientInput.readLine()) != null)
                 {
                     if (message.equalsIgnoreCase(TERMINATION_COMMAND))
@@ -38,21 +33,32 @@ class MyChatServer
                         break;
                     }
 
+                    // Validate the message received from the client.
+                    if (message.trim().isEmpty())
+                    {
+                        clientOutput.println("Message cannot be empty. Please enter a message.");
+                        continue;
+                    }
+
                     System.out.println("The client says : " + message);
                     System.out.println("Enter message for client:");
 
                     String response = keyboard.readLine();
-
-                    // End the session if server input is closed.
                     if (response == null)
                     {
                         break;
                     }
 
+                    // Validate the server's response before sending it.
+                    if (response.trim().isEmpty())
+                    {
+                        clientOutput.println("Server response cannot be empty. Please try again.");
+                        continue;
+                    }
+
                     clientOutput.println(response);
                 }
 
-                // This message is also shown if the client disconnects unexpectedly.
                 System.out.println("Client connection closed.");
             }
         }
