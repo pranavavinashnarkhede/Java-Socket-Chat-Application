@@ -1,127 +1,81 @@
-import java.io.*;
-import java.net.*;
-import java.time.*;
-
+import java.net.Socket;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.IOException;
+import java.util.Scanner;
 
 class MyChatClient
 {
-    private static final String SERVER_HOST = "localhost";
-    private static final int SERVER_PORT = 2101;
-    private static final String TERMINATION_COMMAND = "end";
-
-    public static void main(String A[]) throws IOException
+    public static void main(String[] args)
     {
-        System.out.println("Client application is running");
+        // Server address and port
+        final String SERVER_ADDRESS = "localhost";
+        final int PORT = 2101;
 
-        BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
-        File historyFile = new File("ChatHistory.txt");
+        // Scanner reads input from the keyboard
+        Scanner scanner = new Scanner(System.in);
 
-        // Recover or back up previous chat history.
-        if (historyFile.exists())
+        // Establish connection with the server
+        try (Socket socket = new Socket(SERVER_ADDRESS, PORT))
         {
-            System.out.println("Do you want to recover previous chat history? (Yes/No)");
-            String choice = keyboard.readLine();
+            // Read messages received from the server
+            BufferedReader reader = new BufferedReader( new InputStreamReader( socket.getInputStream()));
 
-            if ("Yes".equalsIgnoreCase(choice))
+            // Send messages to the server
+            PrintStream writer = new PrintStream( socket.getOutputStream());
+
+            System.out.println("Connected to Chat Server");
+            System.out.println("Type 'end' to disconnect");
+
+            // Continue communication until termination
+            while (true)
             {
-                try (BufferedReader historyReader =new BufferedReader(new FileReader(historyFile)))
-                {
-                    String line;
-                    while ((line = historyReader.readLine()) != null)
-                    {
-                        System.out.println(line);
-                    }
-                }
-            }
-            else if ("No".equalsIgnoreCase(choice))
-            {
-                File backupFile = new File("ChatBackup.txt");
-                if (!historyFile.renameTo(backupFile))
-                {
-                    System.out.println("Unable to back up previous chat history.");
-                }
-            }
-        }
+                // Read message from the user
+                System.out.print("Enter Message: ");
 
-        if (!historyFile.exists())
-        {
-            historyFile.createNewFile();
-        }
+                String message = scanner.nextLine();
 
-        try (Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
-             PrintStream serverOutput =new PrintStream(socket.getOutputStream());
-             BufferedReader serverInput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-             BufferedWriter historyWriter =new BufferedWriter(new FileWriter(historyFile, true)))
-        {
-            System.out.println("Connection established successfully");
-            System.out.println("----------------------------------------");
-            System.out.println("---------- Pranav Chat Client ----------");
-            System.out.println("----------------------------------------");
-
-            LocalDate today = LocalDate.now();
-            historyWriter.newLine();
-            historyWriter.newLine();
-            historyWriter.write("==========Chat History==========");
-            historyWriter.newLine();
-            historyWriter.write("Date : [" + today + "]");
-            historyWriter.newLine();
-            historyWriter.flush();
-
-            System.out.println("Enter message for server (type 'end' to exit):");
-
-            String message;
-            while ((message = keyboard.readLine()) != null)
-            {
-                // Check the termination command before validating message text.
-                if (message.equalsIgnoreCase(TERMINATION_COMMAND))
-                {
-                    serverOutput.println(TERMINATION_COMMAND);
-                    break;
-                }
-
-                // Reject empty and whitespace-only messages.
+                // Reject empty or whitespace-only messages
                 if (message.trim().isEmpty())
                 {
-                    System.out.println("Message cannot be empty. Please enter a message.");
-                    System.out.println("Enter message for server (type 'end' to exit):");
+                    System.out.println("Message cannot be empty");
                     continue;
                 }
 
-                LocalTime time = LocalTime.now().withNano(0);
-                historyWriter.write("[" + time + "] Client : " + message);
-                historyWriter.newLine();
-                historyWriter.flush();
+                // Send message to the server
+                writer.println(message);
 
-                serverOutput.println(message);
-
-                String response = serverInput.readLine();
-                if (response == null)
+                // Handle termination request
+                if (message.equalsIgnoreCase("end"))
                 {
-                    System.out.println("The server disconnected.");
+                    System.out.println("Disconnecting...");
                     break;
                 }
 
-                time = LocalTime.now().withNano(0);
-                historyWriter.write("[" + time + "] Server : " + response);
-                historyWriter.newLine();
-                historyWriter.flush();
+                // Receive server response
+                String response = reader.readLine();
 
-                System.out.println("The server says : " + response);
-                System.out.println("Enter message for server (type 'end' to exit):");
+                // Check whether the server disconnected
+                if (response == null)
+                {
+                    System.out.println("Server Disconnected");
+                    break;
+                }
+
+                // Display server response
+                System.out.println("Server: " + response);
             }
+        }
+        catch (IOException e)
+        {
+            // Handle connection or communication errors
+            System.out.println("Connection Error: " + e.getMessage());
+        }
 
-            historyWriter.newLine();
-            historyWriter.write("==============================");
-            historyWriter.newLine();
-            System.out.println("Chat client terminated.");
-        }
-        catch (ConnectException e)
-        {
-            System.out.println("Unable to connect. Make sure the server is running on port "+ SERVER_PORT + ".");
-        }
-        catch (SocketException e)
-        {
-            System.out.println("Connection to the server was lost. Chat session ended.");
-        }
+        // Close keyboard input
+        scanner.close();
+
+        System.out.println("Client Terminated");
     }
 }

@@ -1,68 +1,42 @@
-import java.io.*;
-import java.net.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.io.IOException;
 
 class MyChatServer
 {
-    private static final int SERVER_PORT = 2101;
-    private static final String TERMINATION_COMMAND = "end";
-
-    public static void main(String A[]) throws IOException
+    public static void main(String[] args)
     {
-        System.out.println("Welcome to the server side");
+        // Port number on which the server listens
+        final int PORT = 2101;
 
-        try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT))
+        // ServerSocket is responsible for accepting client connections
+        try (ServerSocket serverSocket = new ServerSocket(PORT))
         {
-            System.out.println("Server is waiting at port " + SERVER_PORT);
+            System.out.println("Chat Server Started...");
+            System.out.println("Waiting for clients on port " + PORT);
 
-            try (Socket clientSocket = serverSocket.accept();
-                 PrintStream clientOutput =new PrintStream(clientSocket.getOutputStream());
-                 BufferedReader clientInput = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                 BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in)))
+            // Server continuously waits for new client connections
+            while (true)
             {
-                System.out.println("Connection accepted successfully");
-                System.out.println("----------------------------------------");
-                System.out.println("---------- Pranav Chat Server ----------");
-                System.out.println("----------------------------------------");
+                // Accept the incoming client connection
+                Socket clientSocket = serverSocket.accept();
 
-                String message;
-                while ((message = clientInput.readLine()) != null)
-                {
-                    if (message.equalsIgnoreCase(TERMINATION_COMMAND))
-                    {
-                        System.out.println("Client requested to end the chat.");
-                        break;
-                    }
+                System.out.println("Client Connected: "+ clientSocket.getInetAddress());
 
-                    // Validate the message received from the client.
-                    if (message.trim().isEmpty())
-                    {
-                        clientOutput.println("Message cannot be empty. Please enter a message.");
-                        continue;
-                    }
+                // Create a separate handler for this client
+                ClientHandler clientHandler = new ClientHandler(clientSocket);
 
-                    System.out.println("The client says : " + message);
-                    System.out.println("Enter message for client:");
+                // Create a new thread for the connected client
+                Thread clientThread = new Thread(clientHandler);
 
-                    String response = keyboard.readLine();
-                    if (response == null)
-                    {
-                        break;
-                    }
-
-                    // Validate the server's response before sending it.
-                    if (response.trim().isEmpty())
-                    {
-                        clientOutput.println("Server response cannot be empty. Please try again.");
-                        continue;
-                    }
-
-                    clientOutput.println(response);
-                }
-
-                System.out.println("Client connection closed.");
+                // Start the client thread
+                clientThread.start();
             }
         }
-
-        System.out.println("Chat server terminated.");
+        catch (IOException e)
+        {
+            // Handle server startup or connection errors
+            System.out.println("Server Error: " + e.getMessage());
+        }
     }
 }
