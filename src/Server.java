@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-class MyChatServer
+class Server
 {
     // Port number on which the server listens
     private static final int PORT = 2101;

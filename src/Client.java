@@ -5,7 +5,7 @@ import java.io.PrintWriter;
 import java.io.IOException;
 import java.util.Scanner;
 
-class MyChatClient
+class Client
 {
     public static void main(String[] args)
     {

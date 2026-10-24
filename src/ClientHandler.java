@@ -40,7 +40,7 @@ class ClientHandler implements Runnable
             System.out.println("Client Connected: "+ clientSocket.getInetAddress());
 
             // Notify other clients about the new connection
-            MyChatServer.broadcast("A new client has joined the chat",this);
+            Server.broadcast("A new client has joined the chat",this);
 
             // Continuously receive messages from this client
             while (connected)
@@ -74,7 +74,7 @@ class ClientHandler implements Runnable
                 String formattedMessage ="Client "+ clientSocket.getPort()+ ": "+ message;
 
                 // Broadcast message to all connected clients
-                MyChatServer.broadcast(formattedMessage,this);
+                Server.broadcast(formattedMessage,this);
             }
         }
         catch (IOException e)
@@ -125,7 +125,7 @@ class ClientHandler implements Runnable
         connected = false;
 
         // Remove client from server collection
-        MyChatServer.removeClient(this);
+        Server.removeClient(this);
 
         // Close the client socket
         try
@@ -141,7 +141,7 @@ class ClientHandler implements Runnable
         }
 
         // Notify remaining clients
-        MyChatServer.broadcast("A client has left the chat",this);
+        Server.broadcast("A client has left the chat",this);
 
         // Display disconnection information
         System.out.println("Client Disconnected");
